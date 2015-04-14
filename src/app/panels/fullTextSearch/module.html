@@ -46,12 +46,12 @@
                 </h5>
                 <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
                     <div class="panel panel-default" ng-repeat="field in panel.fields">
-                        <div class="panel-heading" role="tab" id="heading_{{field}}">
-                            <a href="#collapse_{{field}}" data-parent="#accordion" data-toggle="collapse" aria-expanded="true" aria-controls="collapse_{{field}}">
+                        <div class="panel-heading" role="tab" id="heading_{{field | safeFragment}}">
+                            <a href="#collapse_{{field | safeFragment}}" data-parent="#accordion" data-toggle="collapse" aria-expanded="true" aria-controls="collapse_{{field | safeFragment}}">
                             {{field}} <i class="fa fa-chevron-down" style="float:right;"></i>
                             </a>
                         </div>
-                        <div class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne" id="collapse_{{field}}">
+                        <div class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne" id="collapse_{{field | safeFragment}}">
                             <div class="panel-body">
                                 <div ng-repeat="item in facet_data[field]">
                                     <div ng-show="facet_data[field][$index]['count']>0 &amp;&amp; $index < panel.facet_limit">

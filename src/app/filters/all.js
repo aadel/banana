@@ -182,5 +182,13 @@ define(['angular', 'jquery', 'underscore','showdown'], function(angular, $, _,Sh
       }
     };
   });
+  
+  module.filter('safeFragment', function() {
+    return function(text) {
+      if (text) {
+        return text.replace(/\./g, '_');
+      }
+    };
+  });
 
 });
