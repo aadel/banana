@@ -24,7 +24,7 @@ define([
     // var ejs = ejsResource(config.elasticsearch);
     var solrserver = dashboard.current.solr.server + dashboard.current.solr.core_name || config.solr + config.solr_core;
     var sjs = sjsResource(solrserver);
-    
+
     var _f = dashboard.current.services.filter;
 
     // Save a reference to this
@@ -46,12 +46,38 @@ define([
         self.list[time.id].fromDateObj = new Date(time.fromDateObj);
         self.list[time.id].toDateObj = new Date(time.toDateObj);
       });
-
     };
+
+    /**
+     * Check if the specified filter is already exist in the filter service.
+     * @param filter
+     * @returns {boolean}
+     */
+    function isDuplicate(filter) {
+      var foundDup = _.find(self.list, function(f) {
+        if (f.editing === filter.editing &&
+            f.type === filter.type &&
+            f.query === filter.query &&
+            f.field === filter.field &&
+            f.value === filter.value) {
+          // This filter is a duplicate.
+          return true;
+        }
+      });
+
+      return !!foundDup; // Return boolean value of foundDup
+    }
 
     // This is used both for adding filters and modifying them.
     // If an id is passed, the filter at that id is updated.
     this.set = function(filter,id) {
+      // Check for duplicate filter, if it is already exist, do nothing (don't add it to the Filter panel).
+      // If the filter type is 'time', then we allow duplicate so that Histogram panel will behave correctly
+      // (by adding a new time filter to the Filter panel, every time when a user selects an area in the histogram).
+      if (filter.type !== 'time' && isDuplicate(filter)) {
+        return false;
+      }
+
       _.defaults(filter,{mandate:'must'});
       filter.active = true;
 
@@ -84,6 +110,28 @@ define([
           return _id;
         }
       }
+    };
+
+    /**
+     * Translate a key to the value defined in a dashboard's lang field
+     *
+     * translateLanguageKey("facet", "id", {... "lang" : { "facet.id" : "Model ID" }}) → "Model ID"
+     *
+     * @param (String) domain       an optional namespace for the key
+     * @param {String} key          lang  the key that should be translated
+     * @param {Dashboard} dashboard reference to the currently displayed dashboard, which may or may not have a "lang" field stored with
+     */
+    this.translateLanguageKey = function(domain, key, currentDashboard) {
+
+        var target = (domain ? domain + '.' : '') + key;
+
+        // if the dashboard has a translation for the key...
+        if (currentDashboard.lang && currentDashboard.lang.hasOwnProperty(target)) {
+          return currentDashboard.lang[target];
+        }
+
+        // otherwise return the key itself
+        return key;
     };
 
     this.getBoolFilter = function(ids) {
@@ -147,65 +195,69 @@ define([
     // time filter query
     this.getSolrFq = function(noTime) {
       var start_time, end_time, time_field;
-      var filter_fq ='';
+      var filter_fq = '';
       var filter_either = [];
 
       // Loop through the list to find the time field, usually it should be in self.list[0]
-      _.each(self.list, function(v,k) {
+      _.each(self.list, function(v, k) {
 
-        if (DEBUG) { console.debug('filterSrv: v=',v,' k=',k); }
+        if (DEBUG) {
+          console.debug('filterSrv: v=', v, ' k=', k);
+        }
 
-        if (v.type == 'time') {
-          time_field = v.field;
-          // Check for type of timestamps
-          // In case of relative timestamps, they will be string, not Date obj.
-          if (v.from instanceof Date) {
-            start_time = new Date(v.from).toISOString();
+        if (v.active) {
+          if (v.type === 'time') {
+            time_field = v.field;
+            // Check for type of timestamps
+            // In case of relative timestamps, they will be string, not Date obj.
+            if (v.from instanceof Date) {
+              start_time = new Date(v.from).toISOString();
+            } else {
+              start_time = v.from;
+            }
+
+            if (v.to instanceof Date) {
+              end_time = new Date(v.to).toISOString();
+            } else {
+              end_time = v.to;
+            }
+          } else if (v.type === 'terms') {
+            if (v.mandate === 'must') {
+              filter_fq = filter_fq + '&fq=' + v.field + ':"' + v.value + '"';
+            } else if (v.mandate === 'mustNot') {
+              filter_fq = filter_fq + '&fq=-' + v.field + ':"' + v.value + '"';
+            } else if (v.mandate === 'either') {
+              filter_either.push(v.field + ':"' + v.value + '"');
+            }
+          } else if (v.type === 'field') {
+            // v.query contains double-quote around it.
+            if (v.mandate === 'must') {
+              filter_fq = filter_fq + '&fq=' + v.field + ':' + v.query;
+            } else if (v.mandate === 'mustNot') {
+              filter_fq = filter_fq + '&fq=-' + v.field + ':' + v.query;
+            } else if (v.mandate === 'either') {
+              filter_either.push(v.field + ':' + v.query);
+            }
+          } else if (v.type === 'querystring') {
+            if (v.mandate === 'must') {
+              filter_fq = filter_fq + '&fq=' + encodeURIComponent(v.query);
+            } else if (v.mandate === 'mustNot') {
+              filter_fq = filter_fq + '&fq=-' + encodeURIComponent(v.query);
+            } else if (v.mandate === 'either') {
+              filter_either.push(encodeURIComponent(v.query));
+            }
+          } else if (v.type === 'range') {
+            if (v.mandate === 'must') {
+              filter_fq = filter_fq + '&fq=' + v.field + ':[' + v.from + ' TO ' + v.to + ']';
+            } else if (v.mandate === 'mustNot') {
+              filter_fq = filter_fq + '&fq=-' + v.field + ':[' + v.from + ' TO ' + v.to + ']';
+            } else if (v.mandate === 'either') {
+              filter_either.push(v.field + ':[' + v.from + ' TO ' + v.to + ']');
+            }
           } else {
-            start_time = v.from;
+            // Unsupport filter type
+            return false;
           }
-
-          if (v.to instanceof Date) {
-            end_time = new Date(v.to).toISOString();
-          } else {
-            end_time = v.to;
-          }
-        } else if (v.type == 'terms') {
-          if (v.mandate == 'must') {
-            filter_fq = filter_fq + '&fq=' + v.field + ':"' + v.value + '"';
-          } else if (v.mandate == 'mustNot') {
-            filter_fq = filter_fq + '&fq=-' + v.field + ':"' + v.value + '"';
-          } else if (v.mandate == 'either') {
-            filter_either.push(v.field + ':"' + v.value + '"');
-          }
-        } else if (v.type == 'field') {
-          // v.query contains double-quote around it.
-          if (v.mandate == 'must') {
-            filter_fq = filter_fq + '&fq=' + v.field + ':' + v.query;
-          } else if (v.mandate == 'mustNot') {
-            filter_fq = filter_fq + '&fq=-' + v.field + ':' + v.query;
-          } else if (v.mandate == 'either') {
-            filter_either.push(v.field + ':' + v.query);
-          }
-        } else if (v.type == 'querystring') {
-          if (v.mandate == 'must') {
-            filter_fq = filter_fq + '&fq=' + v.query;
-          } else if (v.mandate == 'mustNot') {
-            filter_fq = filter_fq + '&fq=-' + v.query;
-          } else if (v.mandate == 'either') {
-            filter_either.push(v.query);
-          }
-        } else if (v.type == 'range') {
-          if (v.mandate == 'must') {
-            filter_fq = filter_fq + '&fq=' + v.field + ':[' + v.from +' TO '+ v.to +']';
-          } else if (v.mandate == 'mustNot') {
-            filter_fq = filter_fq + '&fq=-' + v.field + ':[' + v.from +' TO '+ v.to +']';
-          } else if (v.mandate == 'either') {
-            filter_either.push(v.field + ':[' + v.from +' TO '+ v.to +']');
-          }
-        } else {
-          // Unsupport filter type
-          return false;
         }
       });
 
@@ -231,35 +283,35 @@ define([
     this.getTimeField = function() {
       var time_field;
       _.each(self.list, function(v) {
-        if (v.type == 'time') {
+        if (v.type === 'time') {
           time_field = v.field;
           return;
         }
       });
       return time_field;
-    }
+    };
 
     // Get range field for Solr query
     this.getRangeField = function() {
       var range_field;
       _.each(self.list, function(v) {
-        if (v.type == 'range') {
+        if (v.type === 'range') {
           range_field = v.field;
           return;
         }
       });
       return range_field;
-    }
+    };
 
     // Get start time for Solr query (e.g. facet.range.start)
     this.getStartTime = function() {
       var start_time;
       _.each(self.list, function(v) {
-        if (v.type == 'time') {
+        if (v.type === 'time') {
           if (v.from instanceof Date) {
             start_time = new Date(v.from).toISOString();
           } else {
-            start_time = v.from;            
+            start_time = v.from;
           }
           return;
         }
@@ -271,7 +323,7 @@ define([
     this.getEndTime = function() {
       var end_time;
       _.each(self.list, function(v) {
-        if (v.type == 'time') {
+        if (v.type === 'time') {
           if (v.to instanceof Date) {
             end_time = new Date(v.to).toISOString();
           } else {
@@ -287,7 +339,7 @@ define([
     this.getStartTimeAndEndTime = function() {
       var start_time, end_time;
       _.each(self.list, function(v) {
-        if (v.type == 'time') {
+        if (v.type === 'time') {
           start_time = new Date(v.from).toISOString();
           end_time = new Date(v.to).toISOString();
           return;
@@ -304,12 +356,12 @@ define([
     this.idsByTypeAndField = function(type,field,inactive){
       var _require = inactive ? {type:type} : {type:type, field:field, active:true};
       return _.pluck(_.where(self.list,_require),'id');
-    }
+    };
 
     // this method used to get the range filter with specific field
     this.getRangeFieldFilter = function(type, field, inactive){
       return _.pick(self.list, self.idsByTypeAndField(type, field, inactive));
-    }
+    };
 
     this.removeByType = function(type) {
       var ids = self.idsByType(type);
@@ -359,6 +411,7 @@ define([
             to: new Date(_.min(_.pluck(_t,'to')))
           };
         }
+        break; // not neccessary, but added to pass jshint test
       case "max":
         return {
           from: new Date(_.min(_.pluck(_t,'from'))),
@@ -379,7 +432,7 @@ define([
           from: _.max(_.pluck(_t,'from')),
           to: _.min(_.pluck(_t,'to'))
       };
-    }
+    };
 
     this.remove = function(id) {
       if(!_.isUndefined(self.list[id])) {

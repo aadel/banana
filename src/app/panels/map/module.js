@@ -2,7 +2,7 @@
   ## Map
 
   ### Parameters
-  * map :: 'world', 'us' or 'europe'
+  * map :: 'world', 'world-antarctica', 'us' or 'europe'
   * colors :: an array of colors to use for the regions of the map. If this is a 2
               element array, jquerymap will generate shades between these colors
   * size :: How big to make the facet. Higher = more countries
@@ -17,12 +17,11 @@ define([
   'app',
   'underscore',
   'jquery',
+  './lib/map.world.codes',
   './lib/jquery.jvectormap.min'
 ],
-function (angular, app, _, $) {
+function (angular, app, _, $, worldmap) {
   'use strict';
-
-  var DEBUG = false; // DEBUG mode
 
   var module = angular.module('kibana.panels.map', []);
   app.useModule(module);
@@ -53,30 +52,32 @@ function (angular, app, _, $) {
         custom      : ''
       },
       mode  : 'count', // mode to tell which number will be used to plot the chart.
-      field : '',
+      field : '', // field to be used for rendering the map.
       stats_field : '',
       decimal_points : 0, // The number of digits after the decimal point
       map     : "world",
+      useNames	: false,
       colors  : ['#A0E2E2', '#265656'],
       size    : 100,
       exclude : [],
       spyable : true,
-      index_limit : 0
+      index_limit : 0,
+      show_queries:true,
     };
     _.defaults($scope.panel,_d);
 
     $scope.init = function() {
-      $scope.testMultivalued();
+      // $scope.testMultivalued();
       $scope.$on('refresh',function(){$scope.get_data();});
       $scope.get_data();
     };
 
     $scope.testMultivalued = function() {
-      if($scope.panel.field && $scope.panel.field !== '' && $scope.fields.typeList[$scope.panel.field].schema.indexOf("M") > -1) {
+      if($scope.panel.field && $scope.fields.typeList[$scope.panel.field].schema.indexOf("M") > -1) {
         $scope.panel.error = "Can't proceed with Multivalued field";
         return;
       }
-      if($scope.panel.stats_field && $scope.panel.stats_field !== '' && $scope.fields.typeList[$scope.panel.stats_field].schema.indexOf("M") > -1) {
+      if($scope.panel.stats_field && $scope.fields.typeList[$scope.panel.stats_field].schema.indexOf("M") > -1) {
         $scope.panel.error = "Can't proceed with Multivalued field";
         return;
       }
@@ -92,11 +93,10 @@ function (angular, app, _, $) {
 
     $scope.close_edit = function() {
       if ($scope.refresh) {
-        $scope.testMultivalued();
+        // $scope.testMultivalued();
         $scope.get_data();
       }
       $scope.refresh = false;
-      $scope.$emit('render');
     };
 
     $scope.get_data = function() {
@@ -105,6 +105,7 @@ function (angular, app, _, $) {
         return;
       }
       $scope.panelMeta.loading = true;
+      delete $scope.panel.error;
 
       // Solr
       $scope.sjs.client.server(dashboard.current.solr.server + dashboard.current.solr.core_name);
@@ -134,7 +135,10 @@ function (angular, app, _, $) {
       $scope.populate_modal(request);
 
       // Build Solr query
-      var fq = '&' + filterSrv.getSolrFq();
+      var fq = '';
+      if (filterSrv.getSolrFq()) {
+        fq = '&' + filterSrv.getSolrFq();
+      }
       var wt_json = '&wt=json';
       var rows_limit = '&rows=0'; // for map module, we don't display results from row, but we use facets.
       var facet = '';
@@ -147,7 +151,7 @@ function (angular, app, _, $) {
       }
 
       // Set the panel's query
-      $scope.panel.queries.query = querySrv.getQuery(0) + wt_json + fq + rows_limit + facet;
+      $scope.panel.queries.query = querySrv.getORquery() + wt_json + fq + rows_limit + facet;
 
       // Set the additional custom query
       if ($scope.panel.queries.custom != null) {
@@ -156,13 +160,16 @@ function (angular, app, _, $) {
         request = request.setQuery($scope.panel.queries.query);
       }
 
-      if (DEBUG) { console.debug('map: $scope.panel=',$scope.panel); }
-
       var results = request.doSearch();
 
       // Populate scope when we have results
       results.then(function(results) {
         $scope.panelMeta.loading = false;
+        // Check for error and abort if found
+        if(!(_.isUndefined(results.error))) {
+          $scope.panel.error = $scope.parse_error(results.error.msg);
+          return;
+        }
         $scope.data = {}; // empty the data for new results
         var terms = [];
 
@@ -173,8 +180,6 @@ function (angular, app, _, $) {
           $scope.$emit('render');
           return false;
         }
-        
-        if (DEBUG) { console.debug('map: results=',results); }
 
         if ($scope.panel.mode === 'count') {
           terms = results.facet_counts.facet_fields[$scope.panel.field];
@@ -193,16 +198,25 @@ function (angular, app, _, $) {
               // the data contains both uppercase and lowercase state letters with
               // duplicate states (e.g. CA and ca). By adding the value, the map will
               // show correct counts for states with mixed-case letters.
-              if (!$scope.data[terms[i].toUpperCase()]) {
-                $scope.data[terms[i].toUpperCase()] = terms[i+1];
-              } else {
-                $scope.data[terms[i].toUpperCase()] += terms[i+1];
+              if(($scope.panel.map === 'world' || $scope.panel.map === 'world-antarctica') && $scope.panel.useNames) {
+                if(worldmap.countryCodes[terms[i]]) {
+                  if (!$scope.data[worldmap.countryCodes[terms[i]]]) {
+                    $scope.data[worldmap.countryCodes[terms[i]]] = terms[i+1];
+                  } else {
+                    $scope.data[worldmap.countryCodes[terms[i]]] += terms[i+1];
+                  }
+              	}
+              }
+              else {
+                  if (!$scope.data[terms[i].toUpperCase()]) {
+                    $scope.data[terms[i].toUpperCase()] = terms[i+1];
+                  } else {
+                    $scope.data[terms[i].toUpperCase()] += terms[i+1];
+                  }
               }
             }
-          };
+          }
         }
-
-        if (DEBUG) { console.debug('map: $scope.data=',$scope.data); }
 
         $scope.$emit('render');
       });
@@ -215,8 +229,17 @@ function (angular, app, _, $) {
 
     $scope.build_search = function(field,value) {
       // Set querystring to both uppercase and lowercase state values with double-quote around the value
-      // to prevent query error from state=OR (Oregon)
-      filterSrv.set({type:'querystring',mandate:'must',query:field+':"'+value.toUpperCase()+'" OR '+field+':"'+value.toLowerCase()+'"'});
+      // to prevent query error from state=OR (Oregon).
+      // When using Country Name option, the country name is supposed to be in capitalized format. But we
+      // will also add queries for searching both uppercase and lowercase (e.g. Thailand OR THAILAND OR thailand).
+      if (!$scope.panel.useNames) {
+        filterSrv.set({type:'querystring',mandate:'must',query:field+':"'+value.toUpperCase()+
+          '" OR '+field+':"'+value.toLowerCase()+'"'});
+      } else {
+        filterSrv.set({type:'querystring',mandate:'must',query:field+':"'+value.toUpperCase()+
+          '" OR '+field+':"'+value.toLowerCase()+'" OR '+field+':"'+value+'"'});
+      }
+      
       dashboard.refresh();
     };
 
@@ -231,11 +254,6 @@ function (angular, app, _, $) {
 
         // Receive render events
         scope.$on('render',function(){
-          render_panel();
-        });
-
-        // Or if the window is resized
-        angular.element(window).bind('resize', function(){
           render_panel();
         });
 
@@ -271,7 +289,12 @@ function (angular, app, _, $) {
               onRegionClick: function(event, code) {
                 var count = _.isUndefined(scope.data[code]) ? 0 : scope.data[code];
                 if (count !== 0) {
-                  scope.build_search(scope.panel.field,code);
+                  if (!scope.panel.useNames) {
+                    scope.build_search(scope.panel.field, code);
+                  } else {
+                    var countryNames = _.invert(worldmap.countryCodes);
+                    scope.build_search(scope.panel.field, countryNames[code]);
+                  }
                 }
               }
             });

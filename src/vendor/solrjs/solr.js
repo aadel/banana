@@ -205,7 +205,7 @@
         return '%2B' + gap.replace('d', 'DAY');
       case (gap.charAt(gap.length-1) == 'w'):
         // multiply a week by 7 days
-        num_days = gap.substring(0, gap.length-1) * 7;
+        var num_days = gap.substring(0, gap.length-1) * 7;
         return '%2B' + num_days + 'DAY';
       case (gap.charAt(gap.length-1) == 'M'):
         return '%2B' + gap.replace('M', 'MONTH');
@@ -8858,12 +8858,12 @@
             @param {Function} errorcb A callback function that handles errors.
             @returns {Object} The return value is dependent on client implementation.
             */
-      doIndex: function (successcb, errorcb) {
+      doIndex: function (useFusion, blobId, successcb, errorcb) {
         // make sure the user has set a client
         if (sjs.client == null) {
           throw new Error("No Client Set");
         }
-        
+
         if (index == null || type == null) {
           throw new Error('Index and Type must be set');
         }
@@ -8871,11 +8871,6 @@
         if (params.source == null) {
           throw new Error('No source document found');
         }
-        
-        // var url = '/' + index + '/' + type,
-        //   data = JSON.stringify(params.source),
-        //   paramStr = genParamStr(),
-        //   response;
 
         // Need to convert params.source to an array of a JSON obj, so it can be indexed by Solr.
         // Otherwise, SolrException "Unknown Command" will occur.
@@ -8883,20 +8878,29 @@
 
         if (DEBUG) { console.debug('solrjs: params.source = ',params.source); }
 
-        var url = '/update?commit=true',
-          data = JSON.stringify(params.source),
-          paramStr = genParamStr(),
-          response;
-          
-        // if (id != null) {
-        //   url = url + '/' + id;
-        // }
-        
+        // Fusion Index Pipeline use /index endpoint
+        // We need to add param: commit=true, in order to force commit the saved dashboard to show up right away. 
+
+        // Check if use Fusion or Solr
+        var url = '/update?commit=true';
+        if (useFusion) {
+          // url = '/index?echo=false&commit=true';
+          // This is the blob (dashboard) id to be saved.
+          url = '/' + blobId;
+        }
+        var data = JSON.stringify(params.source);
+        var paramStr = genParamStr();
+        var response;
+
         if (paramStr !== '') {
           url = url + '?' + paramStr;
         }
-        
+
         if (DEBUG) { console.debug('solrjs: url=',url,', data=',data); }
+
+        // if (id != null) {
+        //   url = url + '/' + id;
+        // }
 
         // // do post if id not set so one is created
         // if (id == null) {
@@ -8905,8 +8909,12 @@
         //   // put when id is specified
         //   response = sjs.client.put(url, data, successcb, errorcb);
         // }
-        
-        response = sjs.client.post(url, data, successcb, errorcb);
+
+        if (useFusion) {
+          response = sjs.client.put(url, data, successcb, errorcb);
+        } else {
+          response = sjs.client.post(url, data, successcb, errorcb);
+        }
         
         return response;
       },
@@ -8927,7 +8935,7 @@
             */
       doUpdate: function (successcb, errorcb) {
         // make sure the user has set a client
-        if (ejs.client == null) {
+        if (sjs.client == null) {
           throw new Error("No Client Set");
         }
         
@@ -8967,7 +8975,7 @@
           data.doc = params.source;
         }
         
-        return ejs.client.post(url, JSON.stringify(data), successcb, errorcb);
+        return sjs.client.post(url, JSON.stringify(data), successcb, errorcb);
       },
 
       /**
@@ -8979,7 +8987,7 @@
             @param {Function} errorcb A callback function that handles errors.
             @returns {void} Returns the value of the callback when executing on the server.
             */
-      doDelete: function (successcb, errorcb) {
+      doDelete: function (useFusion, successcb, errorcb) {
         // make sure the user has set a client
         if (sjs.client == null) {
           throw new Error("No Client Set");
@@ -9001,11 +9009,39 @@
           throw new Error('ID must be set');
         }
 
-        var data = '';
-        var url = '/update?commit=true&wt=json&stream.body=<delete><query>id:"'+id+'"</query></delete>';
-        
-        // return sjs.client.del(url, data, successcb, errorcb);
-        return sjs.client.get(url, data, successcb, errorcb);
+        // Check if use Fusion or Solr
+        if (useFusion) {
+          // var url = '/index';
+          // var data = angular.toJson([
+          //   {
+          //     id: id,
+          //     commands: [
+          //       { name: "delete", value: id },
+          //       { name: "commit", value: true }
+          //     ]
+          //   }
+          // ]);
+          // return sjs.client.postDel(url, data, successcb, errorcb);
+
+          // Fusion uses Blob Store API
+          var url = '/' + id;
+          var data = {};
+          return sjs.client.del(url, data, successcb, errorcb);
+        } else {
+          // Starting with Solr 7, stream.body is disable by default, so we need to do POST /update with xml commands
+          // in order to delete saved dashboards.
+          var url = '/update';
+          var data = '<delete><query>id:"' + id + '"</query></delete>';
+          var config = {
+            headers: {'Content-type':'text/xml'},
+            params: {
+              wt: 'json',
+              commit: true
+            }
+          };
+
+          return sjs.client.postWithConfig(url, data, config, successcb, errorcb);
+        }
       }
 
     };
@@ -18441,7 +18477,6 @@
             @returns {Object} Returns a client specific object.
             */
       doCount: function (successcb, errorcb) {
-        console.log('doCount(): query = ');console.log(query);
         var queryData = JSON.stringify(query.query);
         // var queryData = '';
       
@@ -18485,6 +18520,10 @@
           if (query.size && query.size > 0) {
             rowNum = '&rows=' + query.size;
           }
+            
+          // TODO I can use query.from to set offset for result
+            
+            
           queryData = 'q=' + query.query.query_string.query + rowNum + '&wt=json';
         }
 
@@ -18498,9 +18537,10 @@
           throw new Error("No Client Set");
         }
 
-        return sjs.client.post(getRestPath('select'), queryData, successcb, errorcb);
-        // Something does not work right with GET method.
+        // Solr select handler allows both GET and POST, but GET has a limited
+        // query string length. So, use POST to allow as long queries as needed.
         // return sjs.client.get(getRestPath('select'), queryData, successcb, errorcb);
+        return sjs.client.post(getRestPath('select'), queryData, successcb, errorcb);
       }
     };
   };

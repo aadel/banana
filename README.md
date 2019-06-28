@@ -1,164 +1,196 @@
 # Banana
 
-The Banana project was forked from Kibana, and works with all kinds of time series (and non-time series) data stored in Apache Solr. It uses Kibana's powerful dashboard configuration capabilities, ports key panels to work with Solr, and provides significant additional capabilities, including new panels that leverage D3.js. 
+The Banana project was forked from [Kibana](https://github.com/elastic/kibana), and works with all kinds of time series
+(and non-time series) data stored in [Apache Solr](https://lucene.apache.org/solr/). It uses Kibana's powerful dashboard
+configuration capabilities, ports key panels to work with Solr, and provides significant additional capabilities,
+including new panels that leverage [D3.js](http://d3js.org).
 
-The goal is to create a rich and flexible UI, enabling users to rapidly develop end-to-end applications that leverage the power of Apache Solr. Data can be ingested into Solr through a variety of ways, including LogStash, Flume and other connectors.
-
+The goal is to create a rich and flexible UI, enabling users to rapidly develop end-to-end applications that leverage
+the power of Apache Solr. Data can be ingested into Solr through a variety of ways, including
+[Logstash](https://www.elastic.co/products/logstash), [Flume](https://flume.apache.org) and other connectors.
  
 ## IMPORTANT
 
-Pull the repo from the "release" branch; version 1.4 will be tagged as banana-1.4.
+Pull the repo from the `release` branch for production deployment; version x.y.z will be tagged as x.y.z
 
-## Banana 1.4: Released on 15 September 2014
+`develop` branch is used for active development and cutting edge features.
+`fusion` branch is used for Lucidworks Fusion release. The code base and features are the same as `develop`. The main difference
+is in the configuration. 
 
-Banana 1.4 contains many new features, new panels, enhancements and bug fixes to improve the overall user experience and stability. Thank you to our growing community for your suggestions and contributions! Please continue sending us your feedbacks, so that we can further extend and improve Banana!
+## Banana 1.6.24
 
-This release includes the following key new features and improvements:
+This release includes the following bug fixes and improvement:
+1. Fix the filter panel where we cannot add more than one filer when clicking on the plus icon.
+1. Fix the Sankey panel. [#338](https://github.com/lucidworks/banana/pull/338)
+1. Allow the Terms panel to have a horizontal bar chart. [#338](https://github.com/lucidworks/banana/pull/338)
+1. Add Sankey hover/highlight effect. [#340](https://github.com/lucidworks/banana/pull/340)
+1. Force diagram numerical node names fix. [#340](https://github.com/lucidworks/banana/pull/340)
 
-1. Banana 1.4 provides much improved performance - by better utilizing Solr's caches in _Timepicker Module_. This improvement is discernable in the Relative and Since time modes.
-2. A new _Full Text Search_ panel provides a more traditional search interface to view textual data.
-3. Enhancements to the _Table_ panel improve performance and user experience:
-    * Sorting option can now be turned off in order to speed up the search results returned from Solr.
-    * A particular column - corresponding to a URI field - can be set as the hyperlink column. When set, this value will become clickable and linked to a specific URI.
-    * You can now display images inside a table column.
-4. In the _Range Facet_ panel, users now have the ability to set the chart's precision automatically or manually.
-5. In the _Terms_ panel, chart colors can be customized by changing the default color template or by using field values as colors.
-6. It is now possible to load and save a dashboard to Gist.
-7. We have fixed the Solr server location for the banana-int collection, the internal collection that stores dashboards. Now banana-int should be located on the same Solr server as specified in Solr Settings in the Dashboard configuration. You do not have to manually edit config.js file anymore.
-8. The dashboard contains a new button that enables users to quickly create a new dashboard from templates. Currently, we provide two default templates: a time-series dashboard template and a non time-series one.
-9. The _Histogram_ panel no longer requires you to set a time field; as logically expected, it will get the time field from the _Timepicker_ panel.
-10. We have enhanced the usability by allowing you to specify custom help messages inside each panel. You no longer need to use a separate _Text_ panel for this purpose. Instead, you can now embed information and instructions within each panel in the dashboard to better communicate with your users.
+## Older Release Notes
 
-## Banana 1.3: Released on 10 June 2014
+You can find all previous [Release Notes](https://github.com/LucidWorks/banana/wiki/Release-Notes) on our wiki page.
 
-Banana 1.3 improves on its already powerful capability to visualize and interpret generalized time series data (banana is not only used to search log files, but also visualize social media streams, call center logs, medical records, and etc.). It starts leveraging the power of D3.js (data-driven documents) and provides new panels and enhancements, while also allowing visualization of non-time series data. Key new features include:
-
-1. Stats and aggregations are now available in the _Terms_ and _Map_ panels. In addition to count mode, you can now visualize stats such as mean, max, min, sum, etc.
-2. A new _Range Facet_ panel allows you to visualize and graphically explore distributions on numeric fields, with selections being reflected across the entire dashboard.
-3. A new _Heatmap_ panel provides for visualization of the powerful pivot faceting capability of Solr.
-4. A new _Ticker_ panel provides a stock ticker like representation of trends in your time series data.
-5. The _Export_ functionality in the the _Table Module_ has been optimized for vastly improved performance and now allows you to export only a subset of the fields in the returned documents.
-6. Previous versions required a _Timepicker_ and time fields set in all panels for them to work. We have cleaned up the code so that it will now work without a _Timepicker_ and a time filter, which will help visualize non-time series data. The time field provided in the _Timepicker_ is used by all panels.
-7. General improvements in the UI and in-product help documentation makes Banana 1.3 easier to use.
-8. The directory structure is now cleaned up and legacy files have been removed. Instructions for enabling CORS in Solr and for setting the schema/config for banana's internal collections are now  contained in the _resources_ directory. 
-
-## Banana 1.2: Released on 11 May 2014
-
-Following release 1.1, we have addressed a number of user requests, including:
-
-1.	This release provides panels for representing geo-spatial data—a _map_ module that provides a heat map-style representation based on two-letter country codes or US state codes, and a _bettermap_ module that provides a clustered representation of location (_LatLonType_) data.
-2.	The _Table Module_ now has a Save button that enables you to save to csv, JSON or XML formats so that you can use other tools like MS Excel for further analysis. The number of rows downloaded will be equal to number of “pageable” hits configured in the _Paging_ tab within the _Table Panel Configuration Menu_ (accessed by clicking on the cog wheel icon near the top right of the table panel).
-3.	You can now control whether a dashboard can be saved and/or edited from the _Editable_ checkbox in the _General_ tab, and the _Controls_ tab, both within the _Dashboard Configurator_ (accessed from the cog-wheel icon to very top and right of dashboard).
-4.	We have added a _hits_ panel that provides you with the number of matching results returned while using the global query parameters. This is useful if you want to make the number prominent or if you are not using the histogram panel prominently.
-5.	You can now provide additional _Global Query Parameters_ that apply to all panels of the dashboard from the _Solr_ tab in the _Dashboard Configurator_. Among other uses, this feature is invaluable for:
-    *	Specifying a custom query parser (Solr query parameter: &defType) or search handler (&qt)
-    *	Specifying a user type for use in custom business rules at the Solr server.
-    *	Specifying default search fields (&df)
-6.	We fixed a bug in the _values_ mode within the _histogram_ module, where missing values were previously assumed to be zero. This led to jagged graphs when the “group by” option was used. We no longer set them to zero but rather have the individual lines skip the missing values.
-7.	In the _Absolute Time_ and _Since_ modes, the _timepicker_ used to skip back one day if your browser time was behind UTC. This issue has now been fixed.
-8.	Banana 1.1 hardcoded certain default search fields (df's) to work with our LogStash output writer. Specifically, it hardcoded a df=message. This means that your old dashboards may not be fetching query results with Banana 1.2, though they were doing so with 1.1. To fix this, add a _Global Query Parameter_ &df=message (or whatever field you want to search on) within the _Dashboard Configurator._ Alternately, you can set the default search field in your solrconfig (recommended).  
-
-
-## Banana 1.1 is here!
-
-We have added a number of exciting new features and fixed key issues, including:
-
-1. You can now add a _Filtering panel_ that supports global filter queries (fq's). Now, if you click on a facet in the terms panel, the results will be filtered for that particular value.
-2. The _terms_, _histogram_ and _table_ modules allow you to specify a panel-specific filter query (within the _Query Tab_ while configuring the panel) allowing greater flexibility in designing dashboards.
-3. The _inspector_ icon on these panels shows the Solr query, which is very useful for debugging dashboards.
-4. The _Histogram_ module allows you to plot values in addition to counts. It also allows you to group values by another field. This would be useful if for example you plot CPU utilization over time and want to group by hostname.
-5. The sort operation in the _Table_ module is now fixed and works correctly on single-valued fields.
-6. We have refactored the code to enable easier addition of new modules and fixes to existing modules.
-
-### Changes to your dashboards
-If you created dashboards for Banana 1.0, you did not have a global filtering panel. In some cases, these filter values can be implicitly set to defaults that may lead to strange search results. We recommend updating your old dashboards by adding a filtering panel. A good way to do it visually is to put the filtering panel on its own row and hide it when it is not needed.
-
-## Installation and QuickStart
-
+## Installation and Quick Start
 ### Requirements
-* A modern web browser. The latest version of Chrome and Firefox have been tested to work. Safari also works, except for the "Export to File" feature for saving dashboards. We recommend that you use Chrome or Firefox while building dashboards.
-* A webserver. 
-* A browser reachable Solr server. The Solr endpoint must be open, or a proxy configured to allow access to it.
+* A modern web browser. The latest version of [Chrome](http://www.google.com/chrome/) and
+[Firefox](https://www.mozilla.org/en-US/firefox/new/) have been tested to work. [Safari](http://www.apple.com/safari/)
+also works, except for the "Export to File" feature for saving dashboards. We recommend that you use Chrome or Firefox
+while building dashboards.
+* Solr 6.x or at least 4.4+ (Solr server's endpoint must be open, or a proxy configured to allow access to it).
+* A webserver (optional).
 
 ### Installation Options
+#### Option 1: Run Banana webapp within your existing Solr instance
+##### Solr 5+ Instructions
+1. Run Solr at least once to create the webapp directory (this step might be unnecessary for Solr 6):
 
-#### Run Banana Web App within your existing Solr instance
-Run Solr at least once to create the webapp directories  
+        cd $SOLR_HOME/bin
+        ./solr start
 
-		cd $SOLR_HOME/example  
-		java -jar start.jar
-		
-Copy banana folder to $SOLR_HOME/example/solr-webapp/webapp/
- 
-Browse to http://\<solr\_server\>:\<port\_number\>/solr/banana/src/index.html#/dashboard
+2. Copy banana folder to `$SOLR_HOME/server/solr-webapp/webapp/`
 
-If your Solr server/port is different from localhost:8983, edit banana/src/config.js and banana/src/app/dashboards/default.json to enter the hostname and port that you are using. Remember that banana runs within the client browser, so provide a fully qualified domain name (FQDN), because the hostname and port number you provide should be resolvable from the client machines.
+        cd $SOLR_HOME/server/solr-webapp/webapp
+        cp -R $BANANA_HOME/src ./banana
 
-If you have not created the data collections and ingested data into Solr, you will see an error message saying "Collection not found at .." You can use any connector to get data into Solr. If you want to use LogStash, please go to the Solr Output Plug-in for LogStash Page (https://github.com/LucidWorks/solrlogmanager) for code, documentation and examples.
+    NOTES: For production, you should run `grunt build` command to generate the optimized code in `dist` directory. And then copy the `dist` directory to the production web server. For example:
 
+        cd $BANANA_HOME
+        npm install
+        bower install
+        grunt build
+        cp -R ./dist $SOLR_HOME/server/solr-webapp/webapp/banana
 
+3. Browse to [http://localhost:8983/solr/banana/index.html](http://localhost:8983/solr/banana/index.html)
 
-#### Complete SLK Stack
+##### Solr 4 Instructions
+1. Run Solr at least once to create the webapp directories:
 
-LucidWorks has packaged Solr, LogStash (with a Solr Output Plug-in), and Banana (the Solr port of Kibana), along with example collections and dashboards in order to rapidly enable proof-of-concepts and initial development/testing. See http://www.lucidworks.com/lucidworks-silk/. 
-
-
-#### Building and installing from a war file
-Pull the repo from the "release" branch; versions 1.3, 1.2 and 1.1 will be tagged as banana-1.3, banana-1.2 and banana-1.1 respectively.  Run "ant" from within the banana directory to build the war file.
-
-    cd $BANANA_REPO_HOME  
-    ant 
-     
-The war file will be called banana-buildnumber.war and will be located in $BANANA\_REPO\_HOME/build  
-
-    cp $BANANA_REPO_HOME/build/banana-buildnumber.war $SOLR_HOME/example/webapps/banana.war   
-    cp $BANANA_REPO_HOME/jetty/banana-context.xml $SOLR_HOME/example/contexts/      
-
-Run Solr:
-
-    cd $SOLR_HOME/example/
-    java -jar start.jar    
+        cd $SOLR_HOME/example
+        java -jar start.jar
     
-Browse to http://localhost:8983/banana  (or the FQDN of your solr server).
+2. Copy banana folder to $SOLR_HOME/example/solr-webapp/webapp/
+3. Browse to [http://localhost:8983/solr/banana/src/index.html](http://localhost:8983/solr/banana/src/index.html)
 
-	
-#### Banana Web App run in a WebServer
+_**NOTES:**_ If your Solr server/port is different from [localhost:8983](http://localhost:8983), edit
+banana/src/config.js and banana/src/app/dashboards/default.json to enter the hostname and port that you are using.
+Remember that banana runs within the client browser, so provide a fully qualified domain name (FQDN), because the
+hostname and port number you provide should be resolvable from the client machines.
 
-Banana is a an AngularJS app and can be run in any webserver that has access to Solr. You will need to enable CORS on the Solr instances that you query, or configure a proxy that makes requests to banana and Solr as same-origin. We typically recommend the latter approach.
+If you have not created the data collections and ingested data into Solr, you will see an error message saying
+"Collection not found at .." You can use any connector to get data into Solr. If you want to use Logstash, please go to
+the Solr Output Plug-in for [Logstash Page](https://github.com/LucidWorks/solrlogmanager) for code, documentation and
+examples.
 
+#### Option 2: Complete SLK Stack
+Lucidworks has packaged Solr, Logstash (with a Solr Output Plug-in), and Banana (the Solr port of Kibana), along with
+example collections and dashboards in order to rapidly enable proof-of-concepts and initial development/testing.
+See [http://www.lucidworks.com/lucidworks-silk/](http://www.lucidworks.com/lucidworks-silk/).
 
-#### Storing Dashboards in Solr
+#### Option 3: Building and installing from a WAR file
+_NOTES: This option is only applicable to Solr 5 or 4. Solr 6 has a different architecture._
+1. Pull the source code of Banana version that you want from the
+[release](https://github.com/LucidWorks/banana/tree/release) branch in the repo;
+For example, version *x.y.z* will be tagged as `x.y.z`.
 
-If you want to save and load dashboards from Solr, create a collection using the configuration files provided in either the _resources/banana-int-solr-4.4_ (for Solr 4.4) directory or the _resources/banana-int-solr-4.5_ directory (for Solr 4.5 and above). If you are using Solr Cloud, you will need to upload the configuration into ZooKeeper and then create the collection using that configuration.
+2. Run a command line `ant` from within the banana directory to build the war file:
 
-The Solr server configured in config.js will serve as the default node for each dashboard; you can configure each dashboard to point to a different Solr endpoint as long as your webserver and Solr put out the correct CORS headers. See the README file under the  _resources/enable-cors_ directory for a guide.
+    ```bash
+        cd $BANANA_HOME
+        ant
+    ```
+3. The war file will be called *banana-\<buildnumber\>.war* and will be located in $BANANA_HOME/build.
+Copy the war file and banana's jetty context file to Solr directories:
+  * For Solr 5:
+
+    ```bash
+        cp $BANANA_HOME/build/banana-<buildnumber>.war $SOLR_HOME/server/webapps/banana.war
+        cp $BANANA_HOME/jetty-contexts/banana-context.xml $SOLR_HOME/server/contexts/
+    ```
+  * For Solr 4:
+
+    ```bash
+        cp $BANANA_HOME/build/banana-<buildnumber>.war $SOLR_HOME/example/webapps/banana.war
+        cp $BANANA_HOME/jetty-contexts/banana-context.xml $SOLR_HOME/example/contexts/
+    ```
+4. Run Solr:
+  * For Solr 5:
+
+    ```bash
+        cd $SOLR_HOME/bin/
+        ./solr start
+    ```
+  * For Solr 4:
+
+    ```bash
+        cd $SOLR_HOME/example/
+        java -jar start.jar
+    ```
+5. Browse to [http://localhost:8983/banana](http://localhost:8983/banana) (or the FQDN of your Solr server).
+    
+#### Option 4: Run Banana webapp in a web server
+Banana is an [AngularJS app](https://angularjs.org) and can be run in any webserver that has access to Solr.
+You will need to enable [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on the Solr instances that
+you query, or configure a proxy that makes requests to banana and Solr as same-origin. We typically recommend the
+latter approach.
+
+### Storing Dashboards in Solr
+If you want to save and load dashboards from Solr, then you need to create a collection called `banana-int` first. For Solr 6, here are the steps:
+
+        cd $SOLR_HOME/bin
+        ./solr create -c banana-int
+
+For Solr 5 and 4, you have to create the `banana-int` collection using the configuration files provided in either
+the _resources/banana-int-solr-5.0_ (for Solr 5) directory or the _resources/banana-int-solr-4.5_ directory
+(for Solr 4.5). If you are using SolrCloud, you will need to upload the configuration into
+[ZooKeeper](https://zookeeper.apache.org) and then create the collection using that configuration.
+
+The Solr server configured in config.js will serve as the default node for each dashboard; you can configure each
+dashboard to point to a different Solr endpoint as long as your webserver and Solr put out the correct CORS headers.
+See the README file under the  _resources/enable-cors_ directory for a guide.
+
+### Changes to your dashboards
+If you created dashboards for Banana 1.0.0, you did not have a global filtering panel. In some cases, these filter
+values can be implicitly set to defaults that may lead to strange search results. We recommend updating your old
+dashboards by adding a filtering panel. A good way to do it visually is to put the filtering panel on its own row and
+hide it when it is not needed.
 
 ## FAQ
 
-__Q__: How do I secure my solr endpoint so that users do not have access to it?   
-__A__: The simplest solution is to use a Apache or nginx reverse proxy (See for example https://groups.google.com/forum/#!topic/ajax-solr/pLtYfm83I98).
-
+__Q__: How do I secure my Solr endpoint so that users do not have access to it?  
+__A__: The simplest solution is to use an [Apache](http://projects.apache.org/projects/http_server.html) or
+[nginx](http://nginx.org) reverse proxy (See for example https://groups.google.com/forum/#!topic/ajax-solr/pLtYfm83I98).
 
 __Q__: Can I use banana for non-time series data?  
 __A__: Yes, from version 1.3 onwards, non-time series data are also supported.
 
-
 ## Resources
 
+1.	Lucidworks SILK: http://www.lucidworks.com/lucidworks-silk/
+2.	Webinar on Lucidworks SILK: http://programs.lucidworks.com/SiLK-introduction_Register.html.
+3.	Logstash: http://logstash.net/
+4.	SILK Use Cases: https://github.com/LucidWorks/silkusecases. Provides example configuration files, schemas and
+dashboards required to build applications that use Solr and Banana.
 
-1.	LucidWorks SILK: http://www.lucidworks.com/lucidworks-silk/
-2.	Webinar on LucidWorks SILK: http://programs.lucidworks.com/SiLK-introduction_Register.html.
-3.	LogStash: http://logstash.net/
-4.	SILK Use Cases: https://github.com/LucidWorks/silkusecases. Provides example configuration files, schemas and dashboards required to build applications that use Solr and Banana.
+## Publishing WAR Artifacts to Maven Central
 
-
+1. 	Get hold of
+[maven-ant-tasks-X.X.X.jar](http://search.maven.org/#search|gav|1|g%3A%22org.apache.maven%22%20AND%20a%3A%22maven-ant-tasks%22)
+and put it in this directory
+2. 	Execute *ant -lib . deploy* from this directory, this will sign the Maven artifacts (currently just .war) and send
+them to a [Sonatype OSSRH](https://oss.sonatype.org/) staging repository. Details of how to set this up can be found
+[here](http://central.sonatype.org/pages/ossrh-guide.html). N.B. Ensure that you have an *release* profile contained
+within ~/.m2/settings.xml
+3.	Once you've read, and are happy with the staging repos, close it. 
 
 ## Support
 
-Banana uses the dashboard configuration capabilities of Kibana (from which it is forked) and ports key panels to work with Solr. Moreover, it provides many additional capabilities like heatmaps, range facets, panel specific filters, global parameters, and visualization of "group-by" style queries. We are continuing to add many new panels that go well beyond what is available in Kibana, helping users build complete applications that leverage the data stored in Apache Solr, HDFS and a variety of sources in the enterprise. 
+Banana uses the dashboard configuration capabilities of Kibana (from which it is forked) and ports key panels to work
+with Solr. Moreover, it provides many additional capabilities like heatmaps, range facets, panel specific filters,
+global parameters, and visualization of "group-by" style queries. We are continuing to add many new panels that go well
+beyond what is available in Kibana, helping users build complete applications that leverage the data stored in
+Apache Solr, HDFS and a variety of sources in the enterprise.
 
-If you have any questions, please contact Andrew Thanalertvisuti (andrew.thanalertvisuti@lucidworks.com) or Ravi Krishnamurthy (ravi.krishnamurthy@lucidworks.com).
-
+If you have any questions, please email banana-support@lucidworks.com
 
 ## Trademarks
 

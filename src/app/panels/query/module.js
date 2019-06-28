@@ -24,7 +24,7 @@ define([
         description: "Inspect",
         icon: "icon-info-sign",
         partial: "app/partials/inspector.html",
-        show: $scope.panel.spyable
+        show: true
       }],
       status  : "Stable",
       description : "Provide a search bar for free-form queries. You almost certainly want one of these somewhere prominent on your dashboard."
@@ -43,6 +43,11 @@ define([
     $scope.querySrv = querySrv;
 
     $scope.init = function() {
+    };
+
+    $scope.reset = function() {
+      $scope.querySrv.list[Object.keys($scope.querySrv.list).length - 1].query = _d.query;
+      $rootScope.$broadcast('refresh');
     };
 
     $scope.refresh = function() {
