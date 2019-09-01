@@ -44,9 +44,9 @@ define([
                     custom: ''
                 },
                 size: 0,
-                row_field: 'start_station_name',
-                col_field: 'gender',
-                row_size: 300,
+                row_field: '',
+                col_field: '',
+                row_size: 5,
                 editor_size: 0,
                 color:'gray',
                 spyable: true,
@@ -60,7 +60,7 @@ define([
             $scope.requireContext = localRequire;
 
             $scope.init = function () {
-                $scope.panel.editor_size = $scope.panel.row_size;
+                $scope.panel.row_size = $scope.panel.editor_size;
                 $scope.generated_id = "tooltip_" + $scope.randomNumberRange(1,1000000);
                 $scope.$on('refresh', function () {
                     $scope.get_data();
@@ -237,6 +237,7 @@ define([
                     alert('invalid rows number');
                 }
                 $scope.refresh = false;
+                $scope.$emit('render');
             };
 
             $scope.render = function () {
@@ -279,6 +280,10 @@ define([
 
                     // Function for rendering panel
                     function render_panel() {
+
+                        var TICK_LENGTH = 10;
+                        var LABEL_CLEARANCE = -8;
+
                         element.html('<div id="' + scope.generated_id +'" class="popup hidden"><p><span id="value"></p></div>');
                         var el = element[0];
 
@@ -301,12 +306,20 @@ define([
                         });
 
                         var margin = {
-                            top: 70,
+                            top: 50,
                             right: 10,
                             bottom: 20,
-                            left: 100
+                            left: 75
                         };
 
+                        var parent_width = element.parent().width(),
+                            row_height = parseInt(scope.row.height);
+
+                        var width = parent_width - margin.left - margin.right,
+                            height = row_height - margin.top - margin.bottom,
+                            canvas_height = row_height - margin.bottom,
+                            canvas_width = parent_width - margin.right;
+                        
                         var rowSortOrder = false,
                             colSortOrder = false;
 
@@ -329,11 +342,10 @@ define([
                             colLabel = jQuery.extend(true, [], scope.col_labels);
                         // jshint ignore:end
 
-                        var cellSize = 15,
+                        var cell_width = width / colLabel.length,
+                            cell_height = height / rowLabel.length,
                             col_number = colLabel.length,
-                            row_number = rowLabel.length,
-                            width = cellSize * col_number,
-                            height = cellSize * row_number;
+                            row_number = rowLabel.length;
 
                         var colors = [];
 
@@ -346,8 +358,8 @@ define([
                         var $tooltip = $('<div>');
 
                         var svg = d3.select(el).append("svg")
-                            .attr("width", width + margin.left + margin.right)
-                            .attr("height", height + margin.top + margin.bottom)
+                            .attr("width", canvas_width)
+                            .attr("height", canvas_height)
                             .append("g")
                             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -366,12 +378,12 @@ define([
                             })
                             .attr("x", 0)
                             .attr("y", function (d, i) {
-                                return hcrow.indexOf(i + 1) * cellSize;
+                                return hcrow.indexOf(i + 1) * cell_height;
                             })
                             .style("text-anchor", "end")
-                            .attr("transform", "translate(-6," + cellSize / 1.5 + ")")
+                            .attr("transform", "translate(" + LABEL_CLEARANCE + " , " + cell_height / 1.5 + ")")
                             .attr("class", function (d, i) {
-                                return "rowLabel_" + scope.generated_id + " mono r" + i;
+                                return "rowLabel_" + scope.generated_id + " r" + i;
                             })
                             .on("mouseover", function (d) {
                                 d3.select(this).classed("text-hover", true);
@@ -391,6 +403,22 @@ define([
                                 sortbylabel("r", i, rowSortOrder);
                             });
 
+                        // Row ticks
+                        var rowTicks = svg.append("g") // jshint ignore:line
+                            .selectAll(".rowLabelg")
+                            .data(rowLabel)
+                            .enter()
+                            .append("line")
+                            .attr("x1", 0)
+                            .attr("y1", 0)
+                            .attr("x2", 0)
+                            .attr("y2", TICK_LENGTH)
+                            .attr("transform", (d, i) => {
+                                return "translate(5, " + (hcrow.indexOf(i + 1) * cell_height + cell_height / 2) + ") rotate (90)"
+                            })
+                            .attr("stroke-width", 1)
+                            .attr("stroke", "black");
+
                         // Column labels
                         var colLabels = svg.append("g") // jshint ignore:line
                             .selectAll(".colLabelg")
@@ -406,26 +434,15 @@ define([
                             })
                             .attr("x", 0)
                             .attr("y", function (d, i) {
-                                return hccol.indexOf(i + 1) * cellSize;
+                                return hccol.indexOf(i + 1) * cell_width;
                             })
                             .style("text-anchor", "left")
-                            .attr("transform", "translate(" + cellSize / 2 + ",-6) rotate (-90)")
+                            .attr("transform", "translate(" + cell_width / 2 + ", " + LABEL_CLEARANCE + ") rotate (-90)")
                             .attr("class", function (d, i) {
-                                return "colLabel_" + scope.generated_id + " mono c" + i;
+                                return "colLabel_" + scope.generated_id + " c" + i;
                             })
                             .on("mouseover", function (d) {
                                 d3.select(this).classed("text-hover", true);
-
-                                // var offsetX = d3.event.offsetX || d3.event.layerX;
-                                // var p = $('#' + scope.generated_id).parent();
-                                // var scrollLeft = $(p).parent().scrollLeft();
-
-                                // var layerX = d3.event.offsetX ? d3.event.layerX : Math.abs(scrollLeft - offsetX);
-
-                                // var offsetY = d3.event.layerY;
-                                // var scrollTop = $(p).parent().scrollTop();
-
-                                // var layerY = d3.event.offsetY ? d3.event.layerY : Math.abs(offsetY - scrollTop);
 
                                 $tooltip.html(d).place_tt(d3.event.pageX, d3.event.pageY);
                             })
@@ -443,8 +460,24 @@ define([
                                 sortbylabel("c", i, colSortOrder);
                             });
 
+                        // Column ticks
+                        var colTicks = svg.append("g") // jshint ignore:line
+                            .selectAll(".colLabelg")
+                            .data(colLabel)
+                            .enter()
+                            .append("line")
+                            .attr("x1", 0)
+                            .attr("y1", 0)
+                            .attr("x2", 0)
+                            .attr("y2", TICK_LENGTH)
+                            .attr("transform", (d, i) => {
+                                return "translate(" + (hccol.indexOf(i + 1) * cell_width + cell_width / 2) + ", -5)"
+                            })
+                            .attr("stroke-width", 1)
+                            .attr("stroke", "black");
+
                         // Heatmap component
-                        var heatMap = svg.append("g").attr("class", "g3") // jshint ignore:line
+                        var heatMap = svg.append("g") // jshint ignore:line
                             .selectAll(".cellg")
                             .data(data, function (d) {
                                 return d.row + ":" + d.col;
@@ -452,16 +485,16 @@ define([
                             .enter()
                             .append("rect")
                             .attr("x", function (d) {
-                                return hccol.indexOf(d.col) * cellSize;
+                                return hccol.indexOf(d.col) * cell_width;
                             })
                             .attr("y", function (d) {
-                                return hcrow.indexOf(d.row) * cellSize;
+                                return hcrow.indexOf(d.row) * cell_height;
                             })
                             .attr("class", function (d) {
                                 return "cell_" + scope.generated_id  +  " cell-border cr" + (d.row - 1) + "_" + scope.generated_id + " cc" + (d.col - 1) + "_" + scope.generated_id;
                             })
-                            .attr("width", cellSize)
-                            .attr("height", cellSize)
+                            .attr("width", cell_width)
+                            .attr("height", cell_height)
                             .style("fill", function (d) {
                                 return colorScale(d.value);
                             })
@@ -519,11 +552,11 @@ define([
 
                                 t.selectAll(".cell_" + scope.generated_id)
                                 .attr("x", function (d) {
-                                    return sorted.indexOf(d.col - 1) * cellSize;
+                                    return sorted.indexOf(d.col - 1) * cell_width;
                                 });
                                 t.selectAll(".colLabel_" + scope.generated_id)
                                 .attr("y", function (d, i) {
-                                    return sorted.indexOf(i) * cellSize;
+                                    return sorted.indexOf(i) * cell_width;
                                 });
                             } else { // sorting by columns
                                 sorted = d3.range(row_number).sort(function (a, b) {
@@ -539,11 +572,11 @@ define([
                                 });
                                 t.selectAll(".cell_" + scope.generated_id)
                                 .attr("y", function (d) {
-                                    return sorted.indexOf(d.row - 1) * cellSize;
+                                    return sorted.indexOf(d.row - 1) * cell_height;
                                 });
                                 t.selectAll(".rowLabel_" + scope.generated_id)
                                 .attr("y", function (d, i) {
-                                    return sorted.indexOf(i) * cellSize;
+                                    return sorted.indexOf(i) * cell_height;
                                 });
                             }
                         }
